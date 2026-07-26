@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0c10" />
+    <meta name="description" content="Aegis Mirror — Digital Sovereignty Engine. Three steps to digital privacy." />
+
+    <title>Aegis MirrorP — אשף ההתקנה</title>
+
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Tailwind (CDN build for the standalone PWA) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX for live journal polling -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Alpine.js for wizard state -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Aegis CSS (shield pulses, liquid-glass) -->
+    <link rel="stylesheet" href="/src/styles/aegis.css" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;600;800&family=Heebo:wght@400;600;800&display=swap');
+        .myth-font { font-family: 'Cinzel', serif; }
+        .prose-font { font-family: 'Heebo', 'Inter', sans-serif; }
+        body { font-family: 'Heebo', 'Inter', sans-serif; }
+
+        @keyframes pulse-emerald {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6)); }
+            50% { transform: scale(1.02); filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.9)); }
+        }
+        @keyframes pulse-amber {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.5)); }
+            50% { transform: scale(1.02); filter: drop-shadow(0 0 35px rgba(245, 158, 11, 0.8)); }
+        }
+        @keyframes liquid-reveal {
+            0% { filter: blur(40px); opacity: 0; transform: scale(1.1); }
+            100% { filter: blur(0);    opacity: 1; transform: scale(1.0); }
+        }
+        .liquid-reveal { animation: liquid-reveal 3s ease-out forwards; }
+        .active-shield { animation: pulse-emerald 4s infinite ease-in-out; }
+        .bypass-shield { animation: pulse-amber  4s infinite ease-in-out; }
+
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .step-pill-done {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #0b0c10;
+        }
+        .step-pill-active {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #0b0c10;
+        }
+        .step-pill-todo {
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+        }
+
+        .blurred-shell { filter: blur(40px); opacity: 0.3; transition: all 1.5s ease-out; }
+        .revealed-shell { filter: blur(0); opacity: 1; }
+    </style>
+</head>
+
+<body class="bg-[#0b0c10] text-slate-200 min-h-screen prose-font">
+
+<div
+    class="max-w-md mx-auto px-4 py-8 space-y-8"
+    x-data="aegisWizard()"
+    x-init="init()"
+    dir="rtl">
+
+    <!-- ============================================================ -->
+    <!-- HEADER                                                       -->
+    <!-- ============================================================ -->
+    <header class="text-center space-y-2">
+        <h1 class="myth-font text-3xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-l from-amber-200 via-yellow-100 to-emerald-300">
+            AEGIS MIRROR
+        </h1>
+        <p class="text-xs text-slate-500 font-semibold tracking-widest uppercase">
+            Digital Sovereignty Engine · מנוע הריבונות הדיגיטלית
+        </p>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- LIQUID MIRROR / SHIELD RING                                  -->
+    <!-- ============================================================ -->
+    <div class="flex justify-center items-center py-4" :class="blurred ? 'blurred-shell' : 'revealed-shell'">
+        <div
+            class="relative w-72 h-72 rounded-full flex justify-center items-center transition-all duration-1000"
+            :class="[shieldActive ? 'active-shield' : 'bypass-shield']">
+
+            <div class="absolute inset-0 rounded-full border-4 border-amber-600/40 bg-[radial-gradient(circle,_rgba(27,38,59,0.6)_0%,_rgba(11,12,16,1)_100%)]"></div>
+
+            <div class="z-10 text-center space-y-3 p-4 pointer-events-none">
+                <div class="myth-font text-sm font-bold tracking-wider"
+                     :class="shieldActive ? 'text-emerald-400' : 'text-amber-500'">
+                    <span x-text="shieldActive ? 'SHIELD ACTIVE · מגן פעיל' : 'BYPASS MODE · מצב עקיפה'"></span>
+                </div>
+                <div class="text-xs text-slate-400">Gorgon Matrix Active</div>
+                <div class="mt-2 text-[10px] text-emerald-300/80 bg-slate-950/60 p-2 rounded border border-emerald-500/20">
+                    <span x-show="!wizardComplete">סרוק וקבל הגנת "Aegis Mirror" מלאה.</span>
+                    <span x-show="wizardComplete" x-cloak>✓ ההגנה הופעלה בהצלחה.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 3-STEP INSTALLATION WIZARD                                   -->
+    <!-- ============================================================ -->
+    <section class="liquid-glass rounded-2xl p-6 space-y-5 shadow-2xl">
+
+        <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+            <h2 class="text-sm font-bold tracking-widest text-slate-300 uppercase">
+                אשף ההתקנה · 3 צעדים פשוטים
+            </h2>
+            <span class="text-[10px] text-slate-500" x-text="`${completedCount}/3`"></span>
+        </div>
+
+        <!-- ---------- STEP 1: DNS ---------- -->
+        <article class="space-y-2" :class="step1 ? 'opacity-60' : ''">
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-9 h-9 rounded-full grid place-items-center text-sm font-bold"
+                      :class="step1 ? 'step-pill-done' : (activeStep === 1 ? 'step-pill-active' : 'step-pill-todo')">
+                    <span x-show="step1">✓</span>
+                    <span x-show="!step1" x-cloak>1</span>
+                </span>
+                <div class="flex-1">
+                    <h3 class="text-sm font-bold text-slate-200">חסימת תשתיות</h3>
+                    <p class="text-[11px] text-slate-500">Infrastructure Block · Private DNS</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed pe-12">
+                לחיצה על "פתח הגדרות DNS" תעביר אותך למסך Private DNS של המכשיר ותעתיק את הכתובת ללוח. הדבק, חזור לאפליקציה, וקבל ✓ ירוק.
+            </p>
+            <div class="flex gap-2 pe-12">
+                <button
+                    @click="openDnsSettings()"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2.5 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    פתח הגדרות DNS
+                </button>
+                <button
+                    @click="markStep1Done()"
+                    :disabled="step1"
+                    :class="step1 ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'"
+                    class="font-bold py-2.5 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    <span x-show="!step1" x-cloak>סיימתי</span>
+                    <span x-show="step1">✓</span>
+                </button>
+            </div>
+            <div x-show="dnsCopied" x-cloak class="text-[11px] text-emerald-400 pe-12">
+                ✓ הכתובת הועתקה ללוח. הדבק אותה במסך ה-Private DNS.
+            </div>
+        </article>
+
+        <!-- ---------- STEP 2: ADVERTISING ID ---------- -->
+        <article class="space-y-2" :class="step2 ? 'opacity-60' : ''">
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-9 h-9 rounded-full grid place-items-center text-sm font-bold"
+                      :class="step2 ? 'step-pill-done' : (activeStep === 2 ? 'step-pill-active' : 'step-pill-todo')">
+                    <span x-show="step2">✓</span>
+                    <span x-show="!step2" x-cloak>2</span>
+                </span>
+                <div class="flex-1">
+                    <h3 class="text-sm font-bold text-slate-200">מחיקת טביעת אצבע</h3>
+                    <p class="text-[11px] text-slate-500">Fingerprint Erasure · Advertising ID</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed pe-12">
+                לחיצה על "מחק מזהה מעקב" תפתח את מסך הפרסומות של Google. לחץ על "מחק" כדי לאפס את המזהה, חזור לאפליקציה, ואשר.
+            </p>
+            <div class="flex gap-2 pe-12">
+                <button
+                    @click="openAdsIdReset()"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2.5 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    מחק מזהה מעקב
+                </button>
+                <button
+                    @click="markStep2Done()"
+                    :disabled="step2"
+                    :class="step2 ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'"
+                    class="font-bold py-2.5 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    <span x-show="!step2" x-cloak>סיימתי</span>
+                    <span x-show="step2">✓</span>
+                </button>
+            </div>
+        </article>
+
+        <!-- ---------- STEP 3: VPN / SHIELD ---------- -->
+        <article class="space-y-2" :class="step3 ? 'opacity-60' : ''">
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-9 h-9 rounded-full grid place-items-center text-sm font-bold"
+                      :class="step3 ? 'step-pill-done' : (activeStep === 3 ? 'step-pill-active' : 'step-pill-todo')">
+                    <span x-show="step3">✓</span>
+                    <span x-show="!step3" x-cloak>3</span>
+                </span>
+                <div class="flex-1">
+                    <h3 class="text-sm font-bold text-slate-200">הפעלת מגן האגיס</h3>
+                    <p class="text-[11px] text-slate-500">Aegis Shield · Virtualization</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed pe-12">
+                לחיצה אחת תבקש את הרשאת ה-VPN המקומית. אשר את הדיאלוג, והמנוע יעבור למצב MOCK — כל בקשת נתונים תקבל וקטורים סינתטיים במקום הנתונים האמיתיים.
+            </p>
+            <div class="flex gap-2 pe-12">
+                <button
+                    @click="activateShield()"
+                    :disabled="step3"
+                    :class="step3 ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-l from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950'"
+                    class="flex-1 font-bold py-3 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    <span x-show="!step3" x-cloak>🛡️ הפעל את המגן</span>
+                    <span x-show="step3">✓ מגן פעיל</span>
+                </button>
+                <button
+                    x-show="step3"
+                    x-cloak
+                    @click="deactivateShield()"
+                    class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 px-4 rounded-lg text-xs tracking-wider uppercase transition-colors">
+                    כבה
+                </button>
+            </div>
+        </article>
+
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SHIELD TOGGLE (visible after wizard complete)                 -->
+    <!-- ============================================================ -->
+    <section class="liquid-glass rounded-2xl p-6 space-y-4 shadow-2xl"
+             x-show="wizardComplete"
+             x-transition
+             x-cloak>
+
+        <button
+            @click="toggleShield()"
+            class="w-full py-4 px-6 rounded-xl font-bold text-sm tracking-wider uppercase transition-all duration-300 flex items-center justify-between"
+            :class="shieldActive
+                ? 'bg-gradient-to-l from-emerald-600 to-teal-500 text-slate-950'
+                : 'bg-gradient-to-l from-amber-600 to-orange-500 text-slate-950'">
+            <span x-text="shieldActive ? '🛡️ כבה את המגן' : '⚠️ הפעל הגנה'"></span>
+            <span class="text-xs px-2 py-1 rounded bg-black/20 font-extrabold"
+                  x-text="shieldActive ? 'מאובטח' : 'עקיפה'"></span>
+        </button>
+
+        <button
+            @click="showSandbox = !showSandbox"
+            class="w-full bg-slate-900/80 text-slate-300 border border-slate-800 py-4 px-6 rounded-xl font-bold text-sm tracking-wider uppercase flex items-center justify-between">
+            <span>📦 הגדר ארגז חול</span>
+            <span class="text-xs text-slate-500" x-text="showSandbox ? 'סגור' : 'פתח'"></span>
+        </button>
+
+        <!-- Sandbox drawer -->
+        <div x-show="showSandbox" x-cloak x-transition class="space-y-3 pt-2 border-t border-slate-800/60">
+            <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">אפליקציות מבודדות</h3>
+            <template x-for="app in sandboxApps" :key="app.package">
+                <label class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg p-3 cursor-pointer hover:border-slate-700 transition-colors">
+                    <div>
+                        <div class="text-sm text-slate-200" x-text="app.name"></div>
+                        <div class="text-[10px] text-slate-500 font-mono" x-text="app.package"></div>
+                    </div>
+                    <input type="checkbox" :checked="app.isolated" @change="toggleAppIsolation(app)" class="w-5 h-5 accent-emerald-500" />
+                </label>
+            </template>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ALTER-EGO CARD                                               -->
+    <!-- ============================================================ -->
+    <section class="liquid-glass rounded-2xl p-6 space-y-3"
+             x-show="wizardComplete"
+             x-transition
+             x-cloak>
+        <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase border-b border-slate-800/60 pb-2">
+            כינוי דואר פעיל · Active Email Alias
+        </h3>
+        <div class="bg-slate-950 border border-emerald-500/20 rounded-lg p-3 text-mono text-sm text-emerald-400 flex justify-between items-center" style="direction: ltr;">
+            <span x-text="activeEmail"></span>
+            <button @click="copyEmail()" class="text-xs font-sans text-slate-400 hover:text-emerald-300 font-bold uppercase">
+                העתק
+            </button>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- LIVE DEFENSE FEED                                            -->
+    <!-- ============================================================ -->
+    <section class="liquid-glass rounded-2xl p-6 space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-800/60 pb-2">
+            <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">
+                פיד הגנה חי · Live Defense Feed
+            </h3>
+            <span class="text-[10px] text-emerald-400">רענון אוטומטי (10 שניות)</span>
+        </div>
+
+        <div
+            id="journal-container"
+            class="space-y-2 text-xs text-slate-400 max-h-48 overflow-y-auto"
+            hx-get="/api/journal?limit=15"
+            hx-trigger="load, every 10s"
+            hx-swap="innerHTML">
+            <div class="p-2.5 bg-slate-950/40 border border-slate-900 rounded-lg text-slate-400">
+                טוען את הפיד...
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER                                                       -->
+    <!-- ============================================================ -->
+    <footer class="text-center text-[10px] text-slate-600 pt-4 space-y-1">
+        <div>Aegis MirrorP · Public Mirror · Build <span x-text="buildTag"></span></div>
+        <div class="font-mono" x-text="`session ${sessionId.slice(0, 8)}`"></div>
+    </footer>
+
+</div>
+
+<!-- Aegis wizard logic -->
+<script type="module" src="/src/lib/wizard.js"></script>
+
+<!-- Service worker for offline PWA shell -->
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+</script>
+
+</body>
+</html>

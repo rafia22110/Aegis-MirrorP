@@ -1,0 +1,44 @@
+{
+  "name": "Aegis MirrorP — Digital Sovereignty",
+  "short_name": "AegisMirror",
+  "description": "Three-step installation wizard for the Aegis Mirror digital sovereignty engine.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0c10",
+  "theme_color": "#10b981",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["privacy", "security", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "הגדר DNS",
+      "short_name": "DNS",
+      "description": "פתח את הגדרות ה-Private DNS",
+      "url": "/?step=1",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "הפעל מגן",
+      "short_name": "Shield",
+      "description": "הפעל את מגן Aegis Mirror",
+      "url": "/?step=3",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

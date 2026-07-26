@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AEGIS MIRROR — Android Manifest
+    ===============================
+    Public mirror source for transparency. The signing config and
+    release keystore live in the private engine repo.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aegismirror.vpn">
+
+    <!-- Network + VPN + Foreground service -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Optional: advertising-id reset screen (step 2 of the wizard) -->
+    <queries>
+        <intent>
+            <action android:name="com.google.android.gms.settings.ADS_PRIVACY" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Aegis Mirror"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <activity
+            android:name="com.aegismirror.ui.HubActivity"
+            android:exported="true"
+            android:label="Aegis Mirror">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".MirrorVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+    </application>
+
+</manifest>

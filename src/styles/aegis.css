@@ -1,0 +1,90 @@
+/* =====================================================================
+   AEGIS MIRROR — Visual Styles
+   =====================================================================
+   Loaded by index.html. Most styles are inline (Tailwind via CDN), but
+   the shield pulse, liquid-glass, and step-pill animations live here so
+   they can be cached and reused across pages.
+   ===================================================================== */
+
+/* ---------- Liquid Glass card ---------- */
+.liquid-glass {
+    background: linear-gradient(135deg,
+        rgba(16, 185, 129, 0.08) 0%,
+        rgba(245, 158, 11, 0.03) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Shield pulses ---------- */
+@keyframes pulse-emerald {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6));
+    }
+    50% {
+        transform: scale(1.02);
+        filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.9));
+    }
+}
+@keyframes pulse-amber {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.5));
+    }
+    50% {
+        transform: scale(1.02);
+        filter: drop-shadow(0 0 35px rgba(245, 158, 11, 0.8));
+    }
+}
+.active-shield { animation: pulse-emerald 4s infinite ease-in-out; }
+.bypass-shield { animation: pulse-amber   4s infinite ease-in-out; }
+
+/* ---------- Liquid Reveal (3-second blur on first load) ---------- */
+@keyframes liquid-reveal {
+    0%   { filter: blur(40px); opacity: 0;   transform: scale(1.1); }
+    100% { filter: blur(0);    opacity: 1;   transform: scale(1.0); }
+}
+.liquid-reveal { animation: liquid-reveal 3s ease-out forwards; }
+
+/* ---------- Step pills ---------- */
+.step-pill-done {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #0b0c10;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+.step-pill-active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #0b0c10;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+.step-pill-todo {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Initial-load blur (mirror unveiling) ---------- */
+.blurred-shell { filter: blur(40px); opacity: 0.3; transition: all 1.5s ease-out; }
+.revealed-shell { filter: blur(0);     opacity: 1.0; transition: all 1.5s ease-out; }
+
+/* ---------- Live Defense Feed items ---------- */
+.feed-item {
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+.feed-item-allow { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+.feed-item-deny  { background: rgba(239, 68, 68, 0.08);  border-color: rgba(239, 68, 68, 0.15);  color: #fca5a5; }
+.feed-item-mock  { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+
+/* ---------- Reduce motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .active-shield, .bypass-shield, .liquid-reveal {
+        animation: none;
+    }
+}

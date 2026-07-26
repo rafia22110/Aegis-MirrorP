@@ -1,0 +1,33 @@
+{
+  "rewrites": [
+    { "source": "/api/aegis/check-policy",  "destination": "/src/api/check-policy.ts" },
+    { "source": "/api/journal",             "destination": "/src/api/journal.ts" },
+    { "source": "/api/register-test",       "destination": "/src/api/register-test.ts" },
+    { "source": "/api/install-state",       "destination": "/src/api/install-state.ts" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options",        "value": "nosniff" },
+        { "key": "X-Frame-Options",               "value": "DENY" },
+        { "key": "Referrer-Policy",               "value": "no-referrer" },
+        { "key": "Strict-Transport-Security",     "value": "max-age=31536000; includeSubDomains; preload" },
+        { "key": "Permissions-Policy",            "value": "geolocation=(), microphone=(), camera=()" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    }
+  ]
+}
