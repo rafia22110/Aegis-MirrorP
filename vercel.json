@@ -1,9 +1,10 @@
 {
   "rewrites": [
-    { "source": "/api/aegis/check-policy",  "destination": "/src/api/check-policy.ts" },
-    { "source": "/api/journal",             "destination": "/src/api/journal.ts" },
-    { "source": "/api/register-test",       "destination": "/src/api/register-test.ts" },
-    { "source": "/api/install-state",       "destination": "/src/api/install-state.ts" }
+    { "source": "/",                       "destination": "/src/api/page.ts" },
+    { "source": "/api/aegis/check-policy", "destination": "/src/api/check-policy.ts" },
+    { "source": "/api/journal",            "destination": "/src/api/journal.ts" },
+    { "source": "/api/register-test",      "destination": "/src/api/register-test.ts" },
+    { "source": "/api/install-state",      "destination": "/src/api/install-state.ts" }
   ],
   "headers": [
     {

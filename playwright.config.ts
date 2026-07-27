@@ -1,22 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config for the Aegis MirrorP wizard test.
+ * Playwright config for the Aegis MirrorP phone-activation flow.
  *
- * Boots `vite preview` on a fixed port (4173), waits for it, then runs
- * the wizard spec against the served bundle. We use preview (not dev)
- * because the wizard relies on the built artifact that Vercel will
- * actually ship.
+ * Boots a tiny Bun HTTP server (`tests/helpers/page-server.ts`) that
+ * imports the production page handler from `src/api/page.ts` and serves
+ * it under `/`. The server runs the same code path Vercel runs in
+ * production, so the E2E tests cover the real handler.
  *
- * Browser matrix is intentionally minimal — just Chromium. The wizard
- * is designed for Android WebView, but the same flow works in desktop
- * Chromium with clipboard + intent navigation stubbed.
+ * Browser matrix is intentionally minimal — just Chromium. The page is
+ * designed for any browser; the QR/JS/Alpine layer was removed in the
+ * "zero-JS" refactor so we don't need clipboard / intent stubbing
+ * anymore.
  */
 export default defineConfig({
     testDir: './tests',
-    testMatch: /wizard\.spec\.ts/,
+    testMatch: /phone\.spec\.ts/,
     timeout: 30_000,
-    fullyParallel: false,                     // single wizard, single browser
+    fullyParallel: false,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 1 : 0,
     reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
@@ -31,7 +32,7 @@ export default defineConfig({
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     ],
     webServer: {
-        command: 'bunx vite preview --port 4173 --host 127.0.0.1 --strictPort',
+        command: 'bun run tests/helpers/page-server.ts',
         url: 'http://127.0.0.1:4173',
         timeout: 30_000,
         reuseExistingServer: !process.env.CI,
