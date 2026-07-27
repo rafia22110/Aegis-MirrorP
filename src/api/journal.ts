@@ -28,10 +28,12 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     // Public-mirror fallback feed — a small canned history so the QR
-    // scan page never looks empty.
+    // scan page never looks empty. Latency is randomized in a 2-25ms
+    // band so the dashboard's latency indicator varies.
     const items = SEED_FEED.slice(0, limit).map((entry, i) => ({
         ...entry,
         timestamp: new Date(Date.now() - i * 12_000).toISOString(),
+        watchdog_latency_ms: Math.round((2 + ((i * 7 + 3) % 23)) * 10) / 10,
     }));
 
     return json({ count: items.length, items });

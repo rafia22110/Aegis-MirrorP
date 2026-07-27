@@ -63,3 +63,8 @@ coverage/
 *.seed
 *.pid.lock
 .tmp/
+
+# --- Playwright test artifacts ---
+test-results/
+playwright-report/
+playwright/.cache/

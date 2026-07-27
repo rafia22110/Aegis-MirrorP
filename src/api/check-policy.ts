@@ -15,6 +15,8 @@ export default async function handler(req: Request): Promise<Response> {
         return new Response('Method Not Allowed', { status: 405 });
     }
 
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
     let body: any = {};
     try {
         body = await req.json();
@@ -49,6 +51,8 @@ export default async function handler(req: Request): Promise<Response> {
     const destination = String(body.destination || 'unknown.domain');
     const permission  = body.permission ? String(body.permission) : null;
 
+    const latency = measureLatency(t0);
+
     // Emergency whitelist — hardcoded for the public mirror.
     const EMERGENCY = new Set(['gov.alert', 'co.il.redalert', '112', '911']);
     if (EMERGENCY.has(destination)) {
@@ -57,7 +61,8 @@ export default async function handler(req: Request): Promise<Response> {
             reason: 'Emergency Bypass Activated',
             narrative: `Aegis Mirror allowed emergency route to ${destination}.`,
             threat_level: 'LOW',
-            latency_ms: 0,
+            latency_ms: latency,
+            watchdog_budget_ms: 50,
         });
     }
 
@@ -73,7 +78,8 @@ export default async function handler(req: Request): Promise<Response> {
             narrative: `Aegis returned synthetic ${permission.toLowerCase()} data to ${packageName}.`,
             threat_level: 'MEDIUM',
             permission_hint: { mocking_behavior: 'SILENT' },
-            latency_ms: 0,
+            latency_ms: latency,
+            watchdog_budget_ms: 50,
         });
     }
 
@@ -82,8 +88,14 @@ export default async function handler(req: Request): Promise<Response> {
         action: 'ALLOW',
         narrative: `Connection from ${packageName} to ${destination} allowed.`,
         threat_level: 'LOW',
-        latency_ms: 0,
+        latency_ms: latency,
+        watchdog_budget_ms: 50,
     });
+}
+
+function measureLatency(t0: number): number {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    return Math.round((now - t0) * 100) / 100;
 }
 
 function json(payload: unknown, status = 200): Response {

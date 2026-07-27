@@ -23,7 +23,9 @@
  */
 
 routerAdd("POST", "/api/aegis/check-policy", (c) => {
-    const t0 = Date.now();
+    const t0 = (typeof performance !== "undefined" && performance.now)
+        ? performance.now()
+        : Date.now();
 
     // --- Parse ---------------------------------------------------------
     let payload;
@@ -45,13 +47,16 @@ routerAdd("POST", "/api/aegis/check-policy", (c) => {
             { dest: destination }
         );
         if (whitelisted) {
-            logDecision(packageName, destination,
-                `Aegis Mirror allowed emergency route to ${destination}.`,
-                "ALLOW", "LOW");
+            const latency = measureLatency(t0);
+            const narrative = `Aegis Mirror allowed emergency route to ${destination}.`;
+            logDecision(packageName, destination, narrative, "ALLOW", "LOW", latency);
             return c.json(200, {
                 action: "ALLOW",
                 reason: "Emergency Bypass Activated",
-                latency_ms: Date.now() - t0,
+                narrative: narrative,
+                threat_level: "LOW",
+                latency_ms: latency,
+                watchdog_budget_ms: 50,
             });
         }
     } catch (_) {
@@ -116,14 +121,16 @@ routerAdd("POST", "/api/aegis/check-policy", (c) => {
     }
 
     // --- Log + respond --------------------------------------------------
-    logDecision(packageName, destination, narrative, action, threatLevel);
+    const latency = measureLatency(t0);
+    logDecision(packageName, destination, narrative, action, threatLevel, latency);
 
     return c.json(200, {
         action: action,
         narrative: narrative,
         permission_hint: permissionHint,
         threat_level: threatLevel,
-        latency_ms: Date.now() - t0,
+        latency_ms: latency,
+        watchdog_budget_ms: 50,
     });
 });
 
@@ -148,6 +155,7 @@ routerAdd("GET", "/api/journal", (c) => {
         narrative: r.get("security_narrative"),
         action: r.get("action_taken"),
         threat_level: r.get("threat_level"),
+        watchdog_latency_ms: r.get("watchdog_latency_ms") || 0,
     }));
     return c.json(200, { count: feed.length, items: feed });
 });
@@ -262,12 +270,25 @@ routerAdd("GET", "/api/install-state", (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// Helper: logDecision
-// Writes a row to traffic_logs. Failures are swallowed because logging
-// must never break the routing decision — the spec is explicit that
-// logging is "conversational" and best-effort.
+// Helper: measureLatency
+// Returns milliseconds since `t0`. Uses performance.now() when available
+// (sub-millisecond resolution in the Go runtime) and falls back to
+// Date.now() otherwise.
 // ---------------------------------------------------------------------------
-function logDecision(sourceApp, destination, narrative, action, threatLevel) {
+function measureLatency(t0) {
+    const now = (typeof performance !== "undefined" && performance.now)
+        ? performance.now()
+        : Date.now();
+    return Math.round((now - t0) * 100) / 100;   // 2 decimal places
+}
+
+// ---------------------------------------------------------------------------
+// Helper: logDecision
+// Writes a row to traffic_logs including the measured latency. Failures
+// are swallowed because logging must never break the routing decision —
+// the spec is explicit that logging is "conversational" and best-effort.
+// ---------------------------------------------------------------------------
+function logDecision(sourceApp, destination, narrative, action, threatLevel, watchdogLatencyMs) {
     try {
         const coll = $app.dao().findCollectionByNameOrId("traffic_logs");
         const record = new Record(coll);
@@ -276,6 +297,7 @@ function logDecision(sourceApp, destination, narrative, action, threatLevel) {
         record.set("security_narrative", narrative);
         record.set("action_taken", action);
         record.set("threat_level", threatLevel);
+        record.set("watchdog_latency_ms", typeof watchdogLatencyMs === "number" ? watchdogLatencyMs : 0);
         $app.dao().saveRecord(record);
     } catch (_) {
         // best-effort

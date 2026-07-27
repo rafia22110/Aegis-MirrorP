@@ -15,11 +15,11 @@
     <!-- Tailwind (CDN build for the standalone PWA) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- HTMX for live journal polling -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- HTMX for live journal polling (vendored so the build is hermetic) -->
+    <script src="/vendor/htmx.min.js"></script>
 
-    <!-- Alpine.js for wizard state -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js for wizard state (vendored so the build is hermetic) -->
+    <script defer src="/vendor/alpine.min.js"></script>
 
     <!-- Aegis CSS (shield pulses, liquid-glass) -->
     <link rel="stylesheet" href="/src/styles/aegis.css" />
@@ -303,15 +303,49 @@
             <span class="text-[10px] text-emerald-400">רענון אוטומטי (10 שניות)</span>
         </div>
 
+        <!-- Live Defense Feed
+             Populated by /api/journal via HTMX, then re-rendered
+             client-side by Alpine so each row shows the watchdog latency
+             as a small colored chip. The raw JSON dump is hidden inside
+             #journal-raw; the rendered HTML is in #journal-rendered. -->
         <div
-            id="journal-container"
+            id="journal-rendered"
             class="space-y-2 text-xs text-slate-400 max-h-48 overflow-y-auto"
+            x-data="journalFeed()">
+            <template x-for="item in items" :key="item.timestamp + item.source">
+                <div class="feed-item"
+                     :class="{
+                        'feed-item-allow': item.action === 'ALLOW',
+                        'feed-item-deny':  item.action === 'DENY',
+                        'feed-item-mock':  item.action === 'MOCK',
+                     }">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="flex-1" x-text="item.narrative"></div>
+                        <span class="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded border"
+                              :class="{
+                                'border-emerald-500/30 text-emerald-300':  item.watchdog_latency_ms < 25,
+                                'border-amber-500/40   text-amber-300':     item.watchdog_latency_ms >= 25 && item.watchdog_latency_ms < 45,
+                                'border-red-500/40     text-red-300':       item.watchdog_latency_ms >= 45,
+                              }"
+                              x-text="(item.watchdog_latency_ms ?? 0).toFixed(1) + 'ms'"></span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 font-mono"
+                         x-text="item.source + ' → ' + item.destination"></div>
+                </div>
+            </template>
+            <div x-show="items.length === 0" class="p-2.5 bg-slate-950/40 border border-slate-900 rounded-lg text-slate-400">
+                טוען את הפיד...
+            </div>
+        </div>
+        <!-- Raw JSON: HTMX writes here; the journalFeed() Alpine component
+             polls it directly. The two layers are decoupled so either can
+             be replaced independently. -->
+        <div
+            id="journal-raw"
+            class="hidden"
             hx-get="/api/journal?limit=15"
             hx-trigger="load, every 10s"
             hx-swap="innerHTML">
-            <div class="p-2.5 bg-slate-950/40 border border-slate-900 rounded-lg text-slate-400">
-                טוען את הפיד...
-            </div>
         </div>
     </section>
 
@@ -326,7 +360,187 @@
 </div>
 
 <!-- Aegis wizard logic -->
-<script type="module" src="/src/lib/wizard.js"></script>
+<!-- Inline wizard body so the build is hermetic — see src/lib/wizard.js for source.
+     Intentionally NOT a module script: Alpine.js (deferred) evaluates x-data
+     bindings during DOMContentLoaded; if this script is a deferred module it
+     runs after Alpine has already tried to evaluate the binding. -->
+<script>
+// Inlined wizard module (mirror of src/lib/wizard.js). Kept in sync via tests.
+function deriveAlias() {
+    const seed = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    return `afi.secure.box${seed}@tempmail.io`;
+}
+function newSessionId() {
+    return ([1e7] + -1e3 + -4e3 + -2e3 + -1e11).replace(/[018]/g, (c) =>
+        (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4)).toString(16),
+    );
+}
+function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+}
+function aegisWizard() {
+    return {
+        blurred: true,
+        shieldActive: false,
+        showSandbox: false,
+        step1: false,
+        step2: false,
+        step3: false,
+        dnsCopied: false,
+        sandboxApps: [
+            { package: 'com.google.android.gms.maps', name: 'Google Maps', isolated: true },
+            { package: 'com.facebook.katana', name: 'Facebook', isolated: true },
+            { package: 'com.whatsapp', name: 'WhatsApp', isolated: false },
+            { package: 'com.instagram.android', name: 'Instagram', isolated: true },
+            { package: 'com.android.chrome', name: 'Chrome', isolated: false },
+        ],
+        activeEmail: deriveAlias(),
+        sessionId: newSessionId(),
+        buildTag: 'P-2026.07',
+        async init() {
+            setTimeout(() => { this.blurred = false; }, 3000);
+            try {
+                const res = await fetch('/api/install-state');
+                if (res.ok) {
+                    const s = await res.json();
+                    this.step1 = !!s.step1;
+                    this.step2 = !!s.step2;
+                    this.step3 = !!s.step3;
+                    this.shieldActive = this.step3;
+                }
+            } catch (_) {}
+            window.addEventListener('aegis:vpn-granted', () => this.markStep3Done());
+        },
+        get completedCount() {
+            return [this.step1, this.step2, this.step3].filter(Boolean).length;
+        },
+        get wizardComplete() {
+            return this.step1 && this.step2 && this.step3;
+        },
+        get activeStep() {
+            if (!this.step1) return 1;
+            if (!this.step2) return 2;
+            if (!this.step3) return 3;
+            return 0;
+        },
+        async openDnsSettings() {
+            const DNS_HOST = 'dns.aegis-mirror.example';
+            try {
+                await navigator.clipboard.writeText(DNS_HOST);
+                this.dnsCopied = true;
+                setTimeout(() => { this.dnsCopied = false; }, 4000);
+            } catch (_) {
+                window.prompt('העתק את כתובת ה-DNS הבאה:', DNS_HOST);
+            }
+            if (isAndroid()) {
+                const intent = 'intent://settings/#Intent;scheme=android.settings;component=com.android.settings/.Settings$PrivateDnsSettingsActivity;end';
+                try { window.location.href = intent; } catch (_) {}
+            }
+        },
+        async markStep1Done() {
+            this.step1 = true;
+            await this.persistWizardState();
+        },
+        openAdsIdReset() {
+            if (isAndroid()) {
+                const intent = 'intent://#Intent;scheme=android-app;package=com.google.android.gms;action=com.google.android.gms.settings.ADS_PRIVACY;end';
+                try { window.location.href = intent; } catch (_) {}
+            }
+        },
+        async markStep2Done() {
+            this.step2 = true;
+            await this.persistWizardState();
+        },
+        async activateShield() {
+            if (isAndroid()) {
+                window.dispatchEvent(new CustomEvent('aegis:request-vpn'));
+            } else {
+                await this.markStep3Done();
+            }
+        },
+        async deactivateShield() {
+            this.shieldActive = false;
+            this.step3 = false;
+            window.dispatchEvent(new CustomEvent('aegis:revoke-vpn'));
+            await this.persistWizardState();
+        },
+        async markStep3Done() {
+            this.step3 = true;
+            this.shieldActive = true;
+            await this.persistWizardState();
+        },
+        async toggleShield() {
+            if (this.shieldActive) {
+                await this.deactivateShield();
+            } else {
+                await this.activateShield();
+            }
+        },
+        async toggleAppIsolation(app) {
+            app.isolated = !app.isolated;
+            try {
+                await fetch('/api/aegis/check-policy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package_name: app.package,
+                        destination: 'self.toggle',
+                        permission: app.isolated ? 'STORAGE' : null,
+                    }),
+                });
+            } catch (_) {}
+        },
+        async copyEmail() {
+            try { await navigator.clipboard.writeText(this.activeEmail); } catch (_) {}
+        },
+        async persistWizardState() {
+            try {
+                await fetch('/api/install-state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dns_configured: this.step1,
+                        advertising_id_reset: this.step2,
+                        shield_active: this.step3,
+                        profile: this.step3 ? 'Standard' : 'Paranoid',
+                    }),
+                });
+            } catch (_) {}
+        },
+    };
+}
+
+// Live Defense Feed — polls #journal-raw every 1s and re-renders the
+// items via x-for. Replaces the previous htmx-then-event approach which
+// was order-sensitive on Alpine vs htmx lifecycle hooks.
+function journalFeed() {
+    return {
+        items: [],
+        lastPollMs: 0,
+        init() {
+            const tick = () => {
+                try {
+                    const raw = document.getElementById('journal-raw');
+                    const text = (raw && raw.textContent) || '';
+                    if (text && text.length > 2) {
+                        const parsed = JSON.parse(text);
+                        const newItems = parsed.items || [];
+                        if (newItems.length !== this.items.length ||
+                            (newItems[0] && this.items[0] && newItems[0].timestamp !== this.items[0].timestamp)) {
+                            this.items = newItems;
+                            this.lastPollMs = Date.now();
+                        }
+                    }
+                } catch (_) { /* JSON may not be valid yet */ }
+            };
+            tick();
+            this._interval = setInterval(tick, 1000);
+        },
+    };
+}
+window.aegisWizard = aegisWizard;
+window.journalFeed = journalFeed;
+</script>
 
 <!-- Service worker for offline PWA shell -->
 <script>

@@ -80,6 +80,35 @@ describe('POST /api/aegis/check-policy', () => {
         }));
         expect(res.status).toBe(400);
     });
+
+    test('every response carries a watchdog_latency_ms budget header', async () => {
+        const cases = [
+            { package_name: 'com.a', destination: '911' },
+            { package_name: 'com.facebook.katana', destination: 'x', permission: 'LOCATION' },
+            { package_name: 'com.example', destination: 'example.com' },
+        ];
+        for (const body of cases) {
+            const res = await checkPolicy(req('/api/aegis/check-policy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            }));
+            const j = await jsonBody<any>(res);
+            expect(typeof j.latency_ms).toBe('number');
+            expect(j.latency_ms).toBeGreaterThanOrEqual(0);
+            expect(j.watchdog_budget_ms).toBe(50);
+        }
+    });
+
+    test('latency never exceeds the 50ms watchdog budget on a healthy run', async () => {
+        const res = await checkPolicy(req('/api/aegis/check-policy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ package_name: 'com.example', destination: 'example.com' }),
+        }));
+        const j = await jsonBody<any>(res);
+        expect(j.latency_ms).toBeLessThan(50);
+    });
 });
 
 describe('GET /api/journal', () => {
@@ -92,6 +121,7 @@ describe('GET /api/journal', () => {
             expect(item).toHaveProperty('narrative');
             expect(item).toHaveProperty('action');
             expect(item).toHaveProperty('timestamp');
+            expect(item).toHaveProperty('watchdog_latency_ms');
         }
     });
 
@@ -100,6 +130,16 @@ describe('GET /api/journal', () => {
         const body = await jsonBody<any>(res);
         for (const item of body.items) {
             expect(['ALLOW', 'DENY', 'MOCK']).toContain(item.action);
+        }
+    });
+
+    test('feed items have watchdog_latency_ms in 0-100ms range', async () => {
+        const res = await journal(req('/api/journal?limit=20'));
+        const body = await jsonBody<any>(res);
+        for (const item of body.items) {
+            expect(typeof item.watchdog_latency_ms).toBe('number');
+            expect(item.watchdog_latency_ms).toBeGreaterThanOrEqual(0);
+            expect(item.watchdog_latency_ms).toBeLessThanOrEqual(100);
         }
     });
 

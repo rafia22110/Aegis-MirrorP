@@ -48,8 +48,6 @@ describe('SQLite-vec schema', () => {
     });
 
     test('permission_overrides constrains permission_type', () => {
-        // The CHECK constraint should enumerate all 7 permission types,
-        // not just the original 4.
         for (const p of ['CAMERA', 'MICROPHONE', 'CONTACTS', 'LOCATION', 'STORAGE', 'SMS', 'PHONE']) {
             expect(SCHEMA).toContain(p);
         }
@@ -58,5 +56,66 @@ describe('SQLite-vec schema', () => {
     test('indexes on traffic_logs for fast dashboard reads', () => {
         expect(SCHEMA).toContain('idx_traffic_logs_recent');
         expect(SCHEMA).toContain('idx_traffic_logs_source');
+    });
+});
+
+describe('PocketBase migration files', () => {
+    const MIGRATION = readFileSync(join(ROOT, 'pb_migrations', '1700000000_init.sql'), 'utf-8');
+
+    test('initial migration creates all 15 tables', () => {
+        for (const table of REQUIRED_TABLES) {
+            const re = new RegExp(`CREATE TABLE IF NOT EXISTS ${table}\\b`, 'i');
+            expect(MIGRATION).toMatch(re);
+        }
+    });
+
+    test('initial migration includes the watchdog_latency_ms column', () => {
+        expect(MIGRATION).toContain('watchdog_latency_ms REAL NOT NULL DEFAULT 0.0');
+    });
+
+    test('initial migration seeds the four emergency routes', () => {
+        for (const r of ['gov.alert', 'co.il.redalert', '112', '911']) {
+            expect(MIGRATION).toContain(`'${r}'`);
+        }
+    });
+
+    test('initial migration creates the same indexes as the schema', () => {
+        for (const idx of [
+            'idx_network_policies_lookup',
+            'idx_permission_overrides_unique',
+            'idx_generated_aliases_unique',
+            'idx_traffic_logs_recent',
+            'idx_traffic_logs_source',
+            'idx_vps_sync_queue_pending',
+            'idx_system_health_recent',
+        ]) {
+            expect(MIGRATION).toContain(idx);
+        }
+    });
+
+    test('follow-up pragma migration exists with higher timestamp', () => {
+        const pragma = readFileSync(join(ROOT, 'pb_migrations', '1700000001_pragmas.sql'), 'utf-8');
+        expect(pragma).toBeDefined();
+        // PocketBase applies migrations in lexicographic order; the
+        // pragma file must sort after the init file.
+        expect('1700000001_pragmas.sql' > '1700000000_init.sql').toBe(true);
+    });
+
+    test('migration loads cleanly into an in-memory SQLite', async () => {
+        const { Database } = await import('bun:sqlite');
+        const db = new Database(':memory:');
+        // Split on the comment-only top section so we can run inside a
+        // transaction if PocketBase wraps it. The init file itself
+        // already has no PRAGMA statements.
+        db.exec(MIGRATION);
+        const tables = db.query<{name: string}, []>(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+        ).all();
+        expect(tables.length).toBe(REQUIRED_TABLES.length);
+        const em = db.query<{count: number}, []>(
+            "SELECT COUNT(*) as count FROM emergency_whitelist",
+        ).get();
+        expect(em?.count).toBe(4);
+        db.close();
     });
 });
