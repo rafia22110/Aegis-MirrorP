@@ -27,8 +27,18 @@ jobs:
       - name: Run tests
         run: bun test
 
-      - name: Build
-        run: bun run build
+      - name: Build (Vercel Edge Functions)
+        # Production is server-rendered by src/api/page.ts via Vercel
+        # Edge Functions (see vercel.json). There is no Vite/webpack
+        # bundle step — Vercel itself bundles each Edge Function entry
+        # declared in vercel.json's rewrites array.
+        # We only verify the entrypoints exist on disk; the deploy job
+        # below is what actually runs `vercel build`.
+        run: |
+          test -f src/api/page.ts         || (echo "missing src/api/page.ts"; exit 1)
+          test -f vercel.json             || (echo "missing vercel.json"; exit 1)
+          grep -q "/src/api/page.ts" vercel.json || (echo "vercel.json must rewrite / to /src/api/page.ts"; exit 1)
+          echo "OK — Edge Function entrypoint + vercel.json rewrites present."
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

@@ -5,9 +5,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview",
+        "dev": "echo \"Aegis MirrorP is server-rendered — no dev server. Use `bun run test:e2e` to exercise the production handlers via tests/helpers/page-server.ts.\" && exit 0",
+        "build": "echo \"No bundler — production is server-rendered by src/api/page.ts via Vercel Edge Functions (see vercel.json).\" && exit 0",
+        "preview": "bun run tests/helpers/page-server.ts",
         "typecheck": "tsc --noEmit",
         "test": "bun test",
         "test:e2e": "playwright test",
