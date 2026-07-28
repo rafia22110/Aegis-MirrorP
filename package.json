@@ -13,9 +13,6 @@
         "test:e2e": "playwright test",
         "deploy": "vercel --prod --yes"
     },
-    "engines": {
-        "node": ">=20"
-    },
     "dependencies": {
         "alpinejs": "^3.13.0",
         "htmx.org": "^1.9.10",
