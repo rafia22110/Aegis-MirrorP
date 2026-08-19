@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://dns.aegis-mirror.io/dns-query</string>
+            </dict>
+            <key>PayloadDescription</key>
+            <string>Configures Encrypted DNS (DoH) for Aegis Mirror Privacy Shield</string>
+            <key>PayloadDisplayName</key>
+            <string>Aegis Mirror Encrypted DNS</string>
+            <key>PayloadIdentifier</key>
+            <string>com.aegismirror.doh</string>
+            <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadUUID</key>
+            <string>9F6B8A2B-8234-4C72-A3D7-B5904D1FE8B2</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>ProhibitDisablement</key>
+            <false/>
+        </dict>
+    </array>
+    <key>PayloadDescription</key>
+    <string>Aegis Mirror Digital Sovereignty Engine - On-device Encrypted DNS Profile</string>
+    <key>PayloadDisplayName</key>
+    <string>Aegis Mirror Private Shield</string>
+    <key>PayloadIdentifier</key>
+    <string>com.aegismirror.profile</string>
+    <key>PayloadOrganization</key>
+    <string>Aegis Mirror</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>3B14C5D2-901B-4E38-B57F-C29D7D648B11</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>
