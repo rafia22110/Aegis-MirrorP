@@ -2,23 +2,23 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/api/index"
+      "destination": "/src/api/page.ts"
     },
     {
       "source": "/api/aegis/check-policy",
-      "destination": "/api/check-policy"
+      "destination": "/src/api/check-policy.ts"
     },
     {
       "source": "/api/journal",
-      "destination": "/api/journal"
+      "destination": "/src/api/journal.ts"
     },
     {
       "source": "/api/register-test",
-      "destination": "/api/register-test"
+      "destination": "/src/api/register-test.ts"
     },
     {
       "source": "/api/install-state",
-      "destination": "/api/install-state"
+      "destination": "/src/api/install-state.ts"
     }
   ],
   "headers": [
@@ -40,6 +40,10 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
         }
       ]
     }
