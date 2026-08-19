@@ -1,12 +1,12 @@
 {
     "name": "aegis-mirrorp",
     "version": "1.0.0",
-    "description": "Aegis MirrorP — public mirror of the Aegis Mirror digital sovereignty engine.",
+    "description": "Aegis MirrorP \u2014 public mirror of the Aegis Mirror digital sovereignty engine.",
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "echo \"Aegis MirrorP is server-rendered — no dev server. Use `bun run test:e2e` to exercise the production handlers via tests/helpers/page-server.ts.\" && exit 0",
-        "build": "echo \"No bundler — production is server-rendered by src/api/page.ts via Vercel Edge Functions (see vercel.json).\" && exit 0",
+        "dev": "echo \"Aegis MirrorP is server-rendered \u2014 no dev server. Use `bun run test:e2e` to exercise the production handlers via tests/helpers/page-server.ts.\" && exit 0",
+        "build": "exit 0",
         "preview": "bun run tests/helpers/page-server.ts",
         "typecheck": "tsc --noEmit",
         "test": "bun test",
